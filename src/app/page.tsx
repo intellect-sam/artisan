@@ -14,6 +14,15 @@ import { cn } from "@/lib/utils"
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
+const HERO_VIDEOS = [
+  { src: "/videos/construction.mp4", label: "Construction Work" },
+  { src: "/videos/plumbing.mp4",     label: "Plumbing & Pipework" },
+  { src: "/videos/electrical.mp4",   label: "Electrical Engineering" },
+  { src: "/videos/carpenter.mp4",    label: "Carpentry" },
+  { src: "/videos/tailor.mp4",       label: "Tailoring & Fashion" },
+  { src: "/videos/weldering.mp4",    label: "Welding" },
+]
+
 const TRADES = [
   { value: "plumber",            label: "Plumber",            icon: "🔧" },
   { value: "electrician",        label: "Electrician",        icon: "⚡" },
@@ -186,6 +195,29 @@ function StatCounter({
 
 export default function HomePage() {
   const [statsRef, statsInView] = useInView(0.3)
+  const [activeVideo, setActiveVideo] = useState(0)
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
+
+  // Start first video on mount
+  useEffect(() => {
+    videoRefs.current[0]?.play().catch(() => {})
+  }, [])
+
+  // On switch: play active, pause & rewind others
+  useEffect(() => {
+    videoRefs.current.forEach((v, i) => {
+      if (!v) return
+      if (i === activeVideo) {
+        v.currentTime = 0
+        v.play().catch(() => {})
+      } else {
+        v.pause()
+        v.currentTime = 0
+      }
+    })
+  }, [activeVideo])
+
+  const handleVideoEnd = () => setActiveVideo(v => (v + 1) % HERO_VIDEOS.length)
 
   return (
     <>
@@ -263,31 +295,54 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Right — photo mosaic */}
+              {/* Right — cycling video panel */}
               <div
-                className="hidden xl:grid grid-cols-2 gap-3 w-72"
-                style={{ animation: "fade-up 0.9s ease both 0.2s" }}
+                className="hidden lg:block relative rounded-3xl overflow-hidden shrink-0 ring-1 ring-white/10"
+                style={{ width: "400px", height: "520px", animation: "fade-up 0.9s ease both 0.2s" }}
               >
-                {[
-                  "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=300&h=360&q=80",
-                  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=300&h=240&q=80",
-                  "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&h=240&q=80",
-                  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=300&h=360&q=80",
-                ].map((src, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl",
-                      i === 0 || i === 3 ? "row-span-2 h-70" : "h-33"
-                    )}
-                  >
-                    <Image src={src} alt="" fill sizes="144px" className="object-cover" />
-                    <div className="absolute inset-0 bg-black/10" />
-                  </div>
+                {/* Videos — all preloaded, refs control play/pause */}
+                {HERO_VIDEOS.map((video, i) => (
+                  <video
+                    key={video.src}
+                    ref={el => { videoRefs.current[i] = el }}
+                    src={video.src}
+                    muted
+                    playsInline
+                    preload="auto"
+                    onEnded={handleVideoEnd}
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+                    style={{ opacity: i === activeVideo ? 1 : 0 }}
+                  />
                 ))}
 
-                {/* Verified chip */}
-                <div className="col-span-2 bg-white/8 backdrop-blur-xl border border-white/12 rounded-xl px-4 py-3 flex items-center gap-3">
+                {/* Gradient overlays */}
+                <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/15 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-r from-[#110b05]/30 to-transparent" />
+
+                {/* Category label — fades with video */}
+                <div className="absolute top-5 left-5">
+                  <span className="inline-flex items-center gap-1.5 bg-white/8 backdrop-blur-md border border-white/12 text-white/60 text-[0.65rem] font-medium tracking-widest uppercase px-3 py-1.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {HERO_VIDEOS[activeVideo].label}
+                  </span>
+                </div>
+
+                {/* Progress dots */}
+                <div className="absolute top-5 right-5 flex gap-1.5">
+                  {HERO_VIDEOS.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveVideo(i)}
+                      className={cn(
+                        "h-1 rounded-full transition-all duration-300",
+                        i === activeVideo ? "w-6 bg-white" : "w-1.5 bg-white/30"
+                      )}
+                    />
+                  ))}
+                </div>
+
+                {/* Bottom chip */}
+                <div className="absolute bottom-6 left-5 right-5 bg-white/8 backdrop-blur-xl border border-white/12 rounded-xl px-4 py-3 flex items-center gap-3">
                   <div className="w-7 h-7 bg-emerald-500/20 rounded-lg flex items-center justify-center shrink-0">
                     <Shield className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
